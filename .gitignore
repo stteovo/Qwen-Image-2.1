@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# ---- Pi 凭证与运行时 ----
+.env
+.env.*
+!.env.example
+.pi/agent-sessions/
+.pi/hf-sessions/
+.pi_config/
+.piignore
+
+# 虚拟环境
+.venv/
+
+# uv 缓存
+uv-cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 环境变量与密钥
+.env
+.env.*
+secrets/
+
+# 数据与模型权重
+data/
+models/
+checkpoints/
+*.ckpt
+*.safetensors
+*.bin
+
+# 日志
+logs/
+*.log

@@ -1,0 +1,187 @@
+# ============================================================
+# Qwen-Image-2.1 训练开发环境
+# 优化版 docker-compose.yml
+# ============================================================
+
+# 注意：新版 Docker Compose 已废弃 version 字段
+# 保留会导致 "the attribute `version` is obsolete" 警告
+# 因此这里省略
+
+services:
+  qwen-image-train:
+    # --------------------------------------------------------
+    # 构建配置
+    # --------------------------------------------------------
+    build:
+      context: .                    # 构建上下文：当前目录
+      dockerfile: Dockerfile        # Dockerfile 文件名
+      args:
+        # 构建参数：可在 Dockerfile 中用 ARG 接收
+        PYTHON_VERSION: "3.11"
+        UV_VERSION: "latest"
+
+    # --------------------------------------------------------
+    # 镜像容器命名
+    # --------------------------------------------------------
+    image: qwen-image-train:latest
+
+    # --------------------------------------------------------
+    # 容器命名
+    # --------------------------------------------------------
+    container_name: qwen_image_dev
+    # 固定容器名，方便 docker exec 引用
+    # 注意：用了 container_name 就不能 --scale 扩展
+
+    # --------------------------------------------------------
+    # GPU 配置
+    # --------------------------------------------------------
+    # 方式一（旧版）：runtime: nvidia
+    # 方式二（推荐）：deploy.resources.reservations.devices
+    # 这里用推荐方式，兼容性更好
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all              # 使用所有 GPU
+              capabilities: [gpu]     # 声明需要 GPU 能力
+        limits:
+          # 内存限制：防止训练吃满宿主机
+          # 根据你的机器调整，32G 是常见值
+          memory: 24G          # 给容器 24G，留 3G 给宿主机和 WSL 本身
+          cpus: "16.0"         # 限制 16 核，留 4 核给系统
+
+    # --------------------------------------------------------
+    # 环境变量，只会注入到容器内部的，不会自注入在宿主机的 shell 中
+    # --------------------------------------------------------
+    environment:
+      # GPU 可见性
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      # Python 输出无缓冲，日志实时显示
+      - PYTHONUNBUFFERED=1
+      # 禁用 Python 写 .pyc 文件（避免污染挂载目录）
+      - PYTHONDONTWRITEBYTECODE=1
+      # HuggingFace 缓存目录（挂载到宿主机，避免重复下载）
+      - HF_HOME=/workspace/.cache/huggingface
+      - TRANSFORMERS_CACHE=/workspace/.cache/huggingface
+      # 时区（日志时间正确）
+      - TZ=Asia/Shanghai
+
+    # --------------------------------------------------------
+    # 用户权限
+    # --------------------------------------------------------
+    # 让容器内用户 UID/GID 与宿主机一致
+    # 避免生成的文件在宿主机变成 root 所有
+    # 启动方式：UID=$(id -u) GID=$(id -g) docker compose up -d
+    user: "${UID:-1000}:${GID:-1000}"
+
+    # --------------------------------------------------------
+    # 卷挂载
+    # --------------------------------------------------------
+    volumes:
+      # ===== 源码热更新（读写）=====
+      # 修改宿主机代码，容器内立即生效，无需重建镜像
+      - ./src:/workspace/src
+      - ./configs:/workspace/configs
+      - ./scripts:/workspace/scripts
+      - ./tests:/workspace/tests
+      - ./pyproject.toml:/workspace/pyproject.toml
+      - ./uv.lock:/workspace/uv.lock
+
+      # ===== 大资产外挂（读写）=====
+      # 训练产出
+      - ./outputs:/workspace/outputs
+      # 日志
+      - ./logs:/workspace/logs
+      # 数据集（WSL 内部路径，性能优于 /mnt/d/）
+      # 如果你必须用 Windows 盘，替换为 /mnt/d/aigc_datasets
+      - ~/aigc_datasets:/workspace/data
+      # 预训练权重
+      - ~/aigc_models:/workspace/models
+      # HuggingFace 缓存（避免每次重新下载模型）
+      - ~/.cache/huggingface:/workspace/.cache/huggingface
+
+      # ===== 保护已安装的 AI 库 =====
+      # 不挂载 /opt/venv 或 .venv
+      # 这样容器里已安装的 torch、diffusers 等不会被覆盖
+
+    # --------------------------------------------------------
+    # 工作目录
+    # --------------------------------------------------------
+    working_dir: /workspace
+
+    # --------------------------------------------------------
+    # 容器启动命令
+    # --------------------------------------------------------
+    # tail -f /dev/null 让容器保持运行
+    # 通过 docker exec 进入容器手动运行训练
+    # Dockerfile 的 CMD 被忽略
+    command: tail -f /dev/null
+
+    # --------------------------------------------------------
+    # 网络配置
+    # --------------------------------------------------------
+    # host 模式：容器直接使用宿主机网络
+    # 好处：访问宿主机服务（如 TensorBoard）更方便
+    # 注意：Linux 下支持，Windows/Mac 下行为不同
+    network_mode: host
+
+    # --------------------------------------------------------
+    # 共享内存
+    # --------------------------------------------------------
+    # PyTorch DataLoader 多进程需要较大共享内存
+    # 默认 64MB 不够，容易报 "Bus error"
+    shm_size: "16gb"
+
+    # --------------------------------------------------------
+    # 重启策略
+    # --------------------------------------------------------
+    # 除非手动停止，否则自动重启（开发环境可关闭）
+    restart: unless-stopped
+
+    # --------------------------------------------------------
+    # 健康检查
+    # --------------------------------------------------------
+    healthcheck:
+      test: ["CMD", "python", "-c", "import torch; assert torch.cuda.is_available()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # --------------------------------------------------------
+    # 日志配置
+    # --------------------------------------------------------
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"       # 单个日志文件最大 50MB
+        max-file: "5"         # 最多保留 5 个
+
+# ============================================================
+# 使用说明
+# ============================================================
+#
+# 1. 启动：
+#    UID=$(id -u) GID=$(id -g) docker compose up -d
+#
+# 2. 进入容器：
+#    docker exec -it qwen_image_dev bash
+#
+# 3. 在容器内运行训练：
+#    cd /workspace
+#    uv sync
+#    python scripts/train.py --config configs/train.yaml
+#
+# 4. 查看日志：
+#    docker compose logs -f
+#
+# 5. 停止：
+#    docker compose down
+#
+# 6. 重建镜像（改了 Dockerfile 或依赖）：
+#    docker compose build --no-cache
+#    docker compose up -d
+#
+# ============================================================

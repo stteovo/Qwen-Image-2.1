@@ -1,0 +1,63 @@
+# ---- 版本控制 ----
+.git
+.gitignore
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ---- 缓存 ----
+.uv/
+.uv-cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+huggingface/
+torch_cache/
+
+# ---- 模型 ----
+models/
+*.ckpt
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.onnx
+
+# ---- 数据 ----
+data/
+datasets/
+*.csv
+*.parquet
+*.jsonl
+*.h5
+*.hdf5
+
+# ---- 输出 ----
+outputs/
+runs/
+logs/
+wandb/
+mlruns/
+checkpoints/
+
+# ---- IDE ----
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# ---- 密钥 ----
+.env
+.env.*
+secrets/
+*.key
+*.pem
+
+
+# ---- 测试 ----
+tests/

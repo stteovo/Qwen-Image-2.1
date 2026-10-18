@@ -29,6 +29,7 @@ models/
 *.onnx
 
 # ---- 数据 ----
+/docs/
 data/
 datasets/
 *.csv

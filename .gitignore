@@ -6,6 +6,7 @@ dist/
 build/
 
 # ---- Pi 凭证与运行时 ----
+.pi/
 .env
 .env.*
 !.env.example

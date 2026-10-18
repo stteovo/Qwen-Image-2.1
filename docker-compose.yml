@@ -8,22 +8,22 @@
 # 因此这里省略
 
 services:
-  qwen-image-train:
+  qwen-image-dev:
     # --------------------------------------------------------
     # 构建配置
     # --------------------------------------------------------
     build:
       context: .                    # 构建上下文：当前目录
-      dockerfile: Dockerfile        # Dockerfile 文件名
+      dockerfile: Dockerfile # Dockerfile 文件名
       args:
         # 构建参数：可在 Dockerfile 中用 ARG 接收
-        PYTHON_VERSION: "3.11"
-        UV_VERSION: "latest"
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
+        UV_VERSION: "${UV_VERSION:-latest}"
 
     # --------------------------------------------------------
     # 镜像容器命名
     # --------------------------------------------------------
-    image: qwen-image-train:latest
+    image: qwen-image:dev
 
     # --------------------------------------------------------
     # 容器命名
@@ -62,9 +62,6 @@ services:
       - PYTHONUNBUFFERED=1
       # 禁用 Python 写 .pyc 文件（避免污染挂载目录）
       - PYTHONDONTWRITEBYTECODE=1
-      # HuggingFace 缓存目录（挂载到宿主机，避免重复下载）
-      - HF_HOME=/workspace/.cache/huggingface
-      - TRANSFORMERS_CACHE=/workspace/.cache/huggingface
       # 时区（日志时间正确）
       - TZ=Asia/Shanghai
 
@@ -86,25 +83,22 @@ services:
       - ./configs:/workspace/configs
       - ./scripts:/workspace/scripts
       - ./tests:/workspace/tests
+      - ./docs:/workspace/docs
       - ./pyproject.toml:/workspace/pyproject.toml
       - ./uv.lock:/workspace/uv.lock
 
       # ===== 大资产外挂（读写）=====
       # 训练产出
-      - ./outputs:/workspace/outputs
+      # - ./outputs:/workspace/outputs
       # 日志
-      - ./logs:/workspace/logs
+      # - ./logs:/workspace/logs
       # 数据集（WSL 内部路径，性能优于 /mnt/d/）
       # 如果你必须用 Windows 盘，替换为 /mnt/d/aigc_datasets
-      - ~/aigc_datasets:/workspace/data
+      # - ~/aigc_datasets:/workspace/data
       # 预训练权重
-      - ~/aigc_models:/workspace/models
+      # - ~/aigc_models:/workspace/models
       # HuggingFace 缓存（避免每次重新下载模型）
       - ~/.cache/huggingface:/workspace/.cache/huggingface
-
-      # ===== 保护已安装的 AI 库 =====
-      # 不挂载 /opt/venv 或 .venv
-      # 这样容器里已安装的 torch、diffusers 等不会被覆盖
 
     # --------------------------------------------------------
     # 工作目录
@@ -158,6 +152,9 @@ services:
       options:
         max-size: "50m"       # 单个日志文件最大 50MB
         max-file: "5"         # 最多保留 5 个
+
+
+
 
 # ============================================================
 # 使用说明

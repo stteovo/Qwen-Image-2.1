@@ -82,6 +82,9 @@ services:
       - ./pyproject.toml:/workspace/pyproject.toml
       - ./uv.lock:/workspace/uv.lock
 
+      # 将 .pi 目录挂载进容器，让 pi 编码助手能够读取 Agent.md 和 skills
+      - ./.pi:/workspace/.pi
+
       # ===== 大资产外挂（读写）=====
       # 训练产出
       # - ./outputs:/workspace/outputs

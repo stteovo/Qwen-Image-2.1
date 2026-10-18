@@ -61,6 +61,9 @@ services:
       # 时区（日志时间正确）
       - TZ=Asia/Shanghai
 
+    # 默认禁止访问外网；需要下载依赖时不要直接移除此限制。
+    # network_mode: none
+
     # --------------------------------------------------------
     # 用户权限
     # --------------------------------------------------------
@@ -68,12 +71,20 @@ services:
     # user: "${UID:-1000}:${GID:-1000}" Mac/Windows上可能会出错
     user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
 
+    # read_only: true：容器根文件系统只读；显式挂载的 /workspace 和 /outputs 仍然可写
+    read_only: true
+    # 剥夺该容器内所有进程的 Linux 系统特权（Capabilities），降级为“平民”身份
+    # cap_drop:
+      # - ALL
+    # 禁止容器内进程通过 setuid/setgid 提权，进一步降低安全风险
+    security_opt:
+      - no-new-privileges:true
+
     # --------------------------------------------------------
     # 卷挂载
     # --------------------------------------------------------
     volumes:
       # ===== 源码热更新（读写）=====
-      # 修改宿主机代码，容器内立即生效，无需重建镜像
       - ./src:/workspace/src
       - ./configs:/workspace/configs
       - ./scripts:/workspace/scripts
@@ -81,24 +92,25 @@ services:
       - ./docs:/workspace/docs
       - ./pyproject.toml:/workspace/pyproject.toml
       - ./uv.lock:/workspace/uv.lock
+      - ./outputs:/workspace/outputs
 
       # 将 .pi 目录挂载进容器，让 pi 编码助手能够读取 Agent.md 和 skills
       - ./.pi:/workspace/.pi
 
       # ===== 大资产外挂（读写）=====
-      # 训练产出
-      # - ./outputs:/workspace/outputs
-      # 日志
-      # - ./logs:/workspace/logs
-      # 数据集（WSL 内部路径，性能优于 /mnt/d/）
-      # 如果你必须用 Windows 盘，替换为 /mnt/d/aigc_datasets
-      # - ~/aigc_datasets:/workspace/data
-      # 预训练权重
-      # - ~/aigc_models:/workspace/models
+      # 【全局大模型权重缓存】预训练权重
+      - type: bind
+        source: "${MODEL_DIR:?Set MODEL_DIR}"
+        target: /home/${DOCKER_USERNAME}/.cache/huggingface
+        read_only: true
+
+      - type: bind
+        source: "${DATASET_DIR:?Set DATASET_DIR}"
+        target: /datasets
+        read_only: true
+
       # 【全局工具缓存】所有 Python 项目共用 uv 依赖包
       - ~/.cache/uv:/home/${DOCKER_USERNAME}/.cache/uv
-      # 【全局大模型权重缓存】所有 AIGC 项目共用下载好的 Qwen 底座权重
-      - ~/.cache/huggingface:/home/${DOCKER_USERNAME}/.cache/huggingface
 
     # --------------------------------------------------------
     # 工作目录

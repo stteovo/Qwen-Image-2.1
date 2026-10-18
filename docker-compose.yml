@@ -1,11 +1,6 @@
 # ============================================================
 # Qwen-Image-2.1 训练开发环境
-# 优化版 docker-compose.yml
 # ============================================================
-
-# 注意：新版 Docker Compose 已废弃 version 字段
-# 保留会导致 "the attribute `version` is obsolete" 警告
-# 因此这里省略
 
 services:
   qwen-image-dev:
@@ -19,6 +14,7 @@ services:
         # 构建参数：可在 Dockerfile 中用 ARG 接收
         PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
         UV_VERSION: "${UV_VERSION:-latest}"
+        DOCKER_USERNAME: "${DOCKER_USERNAME:-stte_docker}"
 
     # --------------------------------------------------------
     # 镜像容器命名
@@ -68,10 +64,9 @@ services:
     # --------------------------------------------------------
     # 用户权限
     # --------------------------------------------------------
-    # 让容器内用户 UID/GID 与宿主机一致
-    # 避免生成的文件在宿主机变成 root 所有
-    # 启动方式：UID=$(id -u) GID=$(id -g) docker compose up -d
-    user: "${UID:-1000}:${GID:-1000}"
+    # 让容器内用户 UID/GID 与宿主机一致，避免生成的文件在宿主机变成 root 所有
+    # user: "${UID:-1000}:${GID:-1000}" Mac/Windows上可能会出错
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
 
     # --------------------------------------------------------
     # 卷挂载
@@ -97,8 +92,10 @@ services:
       # - ~/aigc_datasets:/workspace/data
       # 预训练权重
       # - ~/aigc_models:/workspace/models
-      # HuggingFace 缓存（避免每次重新下载模型）
-      - ~/.cache/huggingface:/workspace/.cache/huggingface
+      # 【全局工具缓存】所有 Python 项目共用 uv 依赖包
+      - ~/.cache/uv:/home/${DOCKER_USERNAME}/.cache/uv
+      # 【全局大模型权重缓存】所有 AIGC 项目共用下载好的 Qwen 底座权重
+      - ~/.cache/huggingface:/home/${DOCKER_USERNAME}/.cache/huggingface
 
     # --------------------------------------------------------
     # 工作目录

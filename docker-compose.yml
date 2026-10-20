@@ -15,6 +15,8 @@ services:
         PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
         UV_VERSION: "${UV_VERSION:-latest}"
         DOCKER_USERNAME: "${DOCKER_USERNAME:-stte_docker}"
+        DOCKER_UID: "${DOCKER_UID:-1000}"
+        DOCKER_GID: "${DOCKER_GID:-1000}"
 
     # --------------------------------------------------------
     # 镜像容器命名
@@ -60,6 +62,8 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
       # 时区（日志时间正确）
       - TZ=Asia/Shanghai
+      # PyTorch Inductor 缓存目录
+      - TORCHINDUCTOR_CACHE_DIR=/home/stte_docker/.cache/uv/torchinductor
 
     # 默认禁止访问外网；需要下载依赖时不要直接移除此限制。
     # network_mode: none
@@ -97,20 +101,30 @@ services:
       # 将 .pi 目录挂载进容器，让 pi 编码助手能够读取 Agent.md 和 skills
       - ./.pi:/workspace/.pi
 
-      # ===== 大资产外挂（读写）=====
-      # 【全局大模型权重缓存】预训练权重
+      # ===== 大资产外挂，训练时可读写，推理时只读=====
+      # 【全局 HF 缓存】预训练权重
       - type: bind
         source: "${MODEL_DIR:?Set MODEL_DIR}"
         target: /home/${DOCKER_USERNAME}/.cache/huggingface
-        read_only: true
+        read_only: false
 
+      # 【全局 dataset 缓存】
       - type: bind
         source: "${DATASET_DIR:?Set DATASET_DIR}"
         target: /datasets
-        read_only: true
+        read_only: false
 
-      # 【全局工具缓存】所有 Python 项目共用 uv 依赖包
-      - ~/.cache/uv:/home/${DOCKER_USERNAME}/.cache/uv
+      # 【全局 UV 缓存】所有 Python 项目共用 uv 依赖包
+      - type: bind
+        source: "${UV_CACHE_DIR:?Set UV_CACHE_DIR}"
+        target: /home/${DOCKER_USERNAME}/.cache/uv
+        read_only: false
+
+    # tmpfs 挂载：标记目录为内存目录（直接分配在内存里，不受只读文件系统限制）
+    # 临时缓存会写到容器的 `/tmp` ，避免写入宿主机磁盘（用完即焚，不适合持久化）
+    tmpfs:
+      # 必须限制 4G，写满了，程序只会报错，不会拖死系统
+      - /tmp:size=4G
 
     # --------------------------------------------------------
     # 工作目录

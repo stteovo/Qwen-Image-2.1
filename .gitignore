@@ -5,6 +5,9 @@ __pycache__/
 dist/
 build/
 
+# 项目输出
+outputs/
+
 # ---- Pi 凭证与运行时 ----
 .pi/
 .env

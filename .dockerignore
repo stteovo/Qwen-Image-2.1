@@ -1,64 +1,109 @@
-# ---- 版本控制 ----
+# Keep required dependency and project metadata
+!pyproject.toml
+!uv.lock
+!.python-version
+!README.md
+!AGENTS.md
+
+# Git
 .git
+.git/**
 .gitignore
 
-# ---- Python ----
+# Python bytecode and caches
 __pycache__/
+**/__pycache__/
 *.py[cod]
-*.egg-info/
-.venv/
-venv/
-
-# ---- 缓存 ----
-.uv/
-.uv-cache/
+*$py.class
 .pytest_cache/
 .mypy_cache/
+.pyright/
 .ruff_cache/
-.cache/
-huggingface/
-torch_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
 
-# ---- 模型 ----
-models/
-*.ckpt
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# uv and package-manager caches
+.uv/
+uv-cache/
+.pip-cache/
+pip-wheel-metadata/
+
+# Model weights and ML caches
+.cache/
+**/.cache/
+huggingface/
+**/huggingface/
+transformers/
+**/transformers/
+torch/
+**/torch/
+wandb/
+mlruns/
+lightning_logs/
+tensorboard/
+runs/
+
+# Datasets and generated artifacts
+datasets/
+data/
+outputs/
+artifacts/
+checkpoints/
+weights/
 *.safetensors
-*.bin
+*.ckpt
 *.pt
 *.pth
 *.onnx
+*.engine
+*.gguf
 
-# ---- 数据 ----
-/docs/
-data/
-datasets/
-*.csv
-*.parquet
-*.jsonl
-*.h5
-*.hdf5
-
-# ---- 输出 ----
-outputs/
-runs/
+# Temporary files and logs
+tmp/
+temp/
+*.tmp
+*.log
 logs/
-wandb/
-mlruns/
-checkpoints/
-
-# ---- IDE ----
-.idea/
-.vscode/
+*.pid
 *.swp
-.DS_Store
+*.swo
+*~
 
-# ---- 密钥 ----
+# Secrets and local environment
 .env
 .env.*
-secrets/
-*.key
+!.env.example
+!.env.sample
+secrets.toml
+secrets.yaml
+secrets.yml
 *.pem
+*.key
+id_rsa
+id_ed25519
 
+# Local IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
 
-# ---- 测试 ----
-tests/
+# Node.js artifacts
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Docker and local tooling
+docker-compose.override.yml
+compose.override.yaml
+compose.override.yml

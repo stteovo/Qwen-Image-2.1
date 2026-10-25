@@ -12,9 +12,11 @@ services:
       dockerfile: Dockerfile # Dockerfile 文件名
       args:
         # 构建参数：可在 Dockerfile 中用 ARG 接收
-        PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
-        UV_VERSION: "${UV_VERSION:-latest}"
-        DOCKER_USERNAME: "${DOCKER_USERNAME:-stte_docker}"
+        UV_VERSION: "${UV_VERSION:-0.13.1}"
+        PYTHON_VERSION: "${PYTHON_VERSION:-3.11.14}"
+        NODE_VERSION: "${NODE_VERSION:-26.8.2}"
+        PI_VERSION: "${PI_VERSION:-1.4.0}"
+        DOCKER_USERNAME: "${DOCKER_USERNAME:-ubuntu}"
         DOCKER_UID: "${DOCKER_UID:-1000}"
         DOCKER_GID: "${DOCKER_GID:-1000}"
 
@@ -22,6 +24,9 @@ services:
     # 镜像容器命名
     # --------------------------------------------------------
     image: qwen-image:dev
+    ports:
+      # 推荐加上双引号，防止 YAML 解析成时间格式
+      - "30141:30141" 
 
     # --------------------------------------------------------
     # 容器命名
@@ -45,8 +50,8 @@ services:
               capabilities: [gpu]     # 声明需要 GPU 能力
         limits:
           # 内存限制：防止训练吃满宿主机
-          # 根据你的机器调整，32G 是常见值
-          memory: 24G          # 给容器 24G，留 3G 给宿主机和 WSL 本身
+          # 根据机器调整
+          memory: 8G          # 给容器 24G，留 3G 给宿主机和 WSL 本身
           cpus: "16.0"         # 限制 16 核，留 4 核给系统
 
     # --------------------------------------------------------
@@ -62,8 +67,11 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
       # 时区（日志时间正确）
       - TZ=Asia/Shanghai
-      # PyTorch Inductor 缓存目录
-      - TORCHINDUCTOR_CACHE_DIR=/home/stte_docker/.cache/uv/torchinductor
+      # PyTorch 编译 缓存目录：TorchInductor、Triton 及相关编译产物
+      - TORCHINDUCTOR_CACHE_DIR=/home/${DOCKER_USERNAME}/.cache/torch/inductor
+      - TMPDIR=/tmp
+      - TEMP=/tmp
+      - TMP=/tmp
 
     # 默认禁止访问外网；需要下载依赖时不要直接移除此限制。
     # network_mode: none
@@ -75,8 +83,8 @@ services:
     # user: "${UID:-1000}:${GID:-1000}" Mac/Windows上可能会出错
     user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
 
-    # read_only: true：容器根文件系统只读；显式挂载的 /workspace 和 /outputs 仍然可写
-    read_only: true
+    # read_only: true：容器根文件系统只读；
+    # read_only: true
     # 剥夺该容器内所有进程的 Linux 系统特权（Capabilities），降级为“平民”身份
     # cap_drop:
       # - ALL
@@ -96,28 +104,45 @@ services:
       - ./docs:/workspace/docs
       - ./pyproject.toml:/workspace/pyproject.toml
       - ./uv.lock:/workspace/uv.lock
+      - ./.python-version:/workspace/.python-version
+      - ./README.md:/workspace/README.md
+      - ./AGENTS.md:/workspace/AGENTS.md
       - ./outputs:/workspace/outputs
 
-      # 将 .pi 目录挂载进容器，让 pi 编码助手能够读取 Agent.md 和 skills
+      # Git 状态和历史：Pi 需要查看 diff、提交记录等
+      - ./.git:/workspace/.git
+      - ./.gitignore:/workspace/.gitignore
+
+      # Pi 用户配置、会话和运行状态持久化。
+      # 此目录应加入 .gitignore，避免提交凭证。
       - ./.pi:/workspace/.pi
 
+      # Pi 的运行时文件目录，保证 pi 能正常运行：增加一个独立的用户级状态目录
+      - ./.pi-runtime:/home/ubuntu/.pi
+
       # ===== 大资产外挂，训练时可读写，推理时只读=====
-      # 【全局 HF 缓存】预训练权重
+      # 【 HF 缓存】预训练权重
       - type: bind
         source: "${MODEL_DIR:?Set MODEL_DIR}"
         target: /home/${DOCKER_USERNAME}/.cache/huggingface
         read_only: false
 
-      # 【全局 dataset 缓存】
+      # 【 dataset 缓存】
       - type: bind
         source: "${DATASET_DIR:?Set DATASET_DIR}"
         target: /datasets
         read_only: false
 
-      # 【全局 UV 缓存】所有 Python 项目共用 uv 依赖包
+      # 【 UV 缓存】所有 Python 项目共用 uv 依赖包
       - type: bind
         source: "${UV_CACHE_DIR:?Set UV_CACHE_DIR}"
         target: /home/${DOCKER_USERNAME}/.cache/uv
+        read_only: false
+      
+      # 【 PyTorch 编译缓存 】：TorchInductor、Triton 及相关编译产物
+      - type: bind
+        source: "${TORCHINDUCTOR_CACHE_DIR:?Set TORCHINDUCTOR_CACHE_DIR}"
+        target: /home/${DOCKER_USERNAME}/.cache/torch/inductor
         read_only: false
 
     # tmpfs 挂载：标记目录为内存目录（直接分配在内存里，不受只读文件系统限制）
@@ -132,20 +157,12 @@ services:
     working_dir: /workspace
 
     # --------------------------------------------------------
-    # 容器启动命令
-    # --------------------------------------------------------
-    # tail -f /dev/null 让容器保持运行
-    # 通过 docker exec 进入容器手动运行训练
-    # Dockerfile 的 CMD 被忽略
-    command: tail -f /dev/null
-
-    # --------------------------------------------------------
     # 网络配置
     # --------------------------------------------------------
     # host 模式：容器直接使用宿主机网络
     # 好处：访问宿主机服务（如 TensorBoard）更方便
     # 注意：Linux 下支持，Windows/Mac 下行为不同
-    network_mode: host
+    # network_mode: host
 
     # --------------------------------------------------------
     # 共享内存
@@ -162,13 +179,14 @@ services:
 
     # --------------------------------------------------------
     # 健康检查
+    # 当你运行 docker ps 时，STATUS 一栏会显示 Up 2 minutes (healthy) 或 (unhealthy)。你不用进容器，一眼就能看出 GPU 环境是否正常。
     # --------------------------------------------------------
-    healthcheck:
-      test: ["CMD", "python", "-c", "import torch; assert torch.cuda.is_available()"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+    # healthcheck:
+    #   test: ["CMD", "/workspace/.venv/bin/python", "-c", "import torch; assert torch.cuda.is_available()"]
+    #   interval: 1800s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 180s
 
     # --------------------------------------------------------
     # 日志配置

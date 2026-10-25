@@ -9,7 +9,9 @@ build/
 outputs/
 
 # ---- Pi 凭证与运行时 ----
-.pi/
+# .pi/
+# 容器内 Pi 运行时用户文件挂载在本机的目录
+.pi-runtime/
 .env
 .env.*
 !.env.example

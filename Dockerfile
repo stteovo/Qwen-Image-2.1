@@ -171,6 +171,12 @@ RUN --mount=type=cache,id=shared-uv-cache-v1,target=/home/${DOCKER_USERNAME}/.ca
 RUN --mount=type=cache,id=shared-npm-cache-v1,target=/home/${DOCKER_USERNAME}/.npm,uid=${DOCKER_UID},gid=${DOCKER_GID} \
     set -eux; \
     npm install --global "@earendil-works/pi-coding-agent@${PI_VERSION}"; \
+    pi install npm:billion-context; \
+    pi install npm:pi-mcp-adapter; \
+    pi install npm:pi-subagents; \
+    pi install npm:pi-web-access; \
+    pi install npm:pi-lens; \
+    pi install npm:pi-workspace-history; \
     npm install -g @agegr/pi-web@latest; \
     pi --version; \
     pi-web version

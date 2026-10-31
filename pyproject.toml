@@ -68,7 +68,6 @@ exclude = [
   "**/__pycache__", # cache directories
   "./typings",      # generated type stubs
 ]
-stubPath = "./typings"
 
 
 [tool.tomlsort]

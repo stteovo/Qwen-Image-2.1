@@ -50,7 +50,7 @@ select = [
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-line-ending = "auto"
+line-ending = "lf"
 skip-magic-trailing-comma = false
 docstring-code-format = true
 

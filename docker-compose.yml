@@ -26,7 +26,7 @@ services:
     image: qwen-image:dev
     ports:
       # 推荐加上双引号，防止 YAML 解析成时间格式
-      - "30141:30141" 
+      - "30140:30141" 
 
     # --------------------------------------------------------
     # 容器命名
@@ -118,7 +118,8 @@ services:
       - ./.pi:/workspace/.pi
 
       # Pi 的运行时文件目录，保证 pi 能正常运行：增加一个独立的用户级状态目录
-      - ./.pi-runtime:/home/ubuntu/.pi
+      - ./.pi-runtime:/home/${DOCKER_USERNAME}/.pi
+      - ${HOME}/.pi/agent/auth.json:/home/${DOCKER_USERNAME}/.pi/agent/auth.json:ro
 
       # ===== 大资产外挂，训练时可读写，推理时只读=====
       # 【 HF 缓存】预训练权重

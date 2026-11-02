@@ -1,0 +1,127 @@
+{
+    "providers": {
+        "ark-coding": {
+            "baseUrl": "https://ark.cn-beijing.volces.com/api/coding/v3",
+            "api": "openai-completions",
+            "apiKey": "$ARK_API_KEY",
+            "models": [
+                {
+                    "id": "deepseek-v4-flash",
+                    "name": "Ark · DeepSeek V4 Flash",
+                    "reasoning": true,
+                    "input": [
+                        "text"
+                    ],
+                    "contextWindow": 1000000,
+                    "maxTokens": 384000,
+                    "compat": {
+                        "supportsDeveloperRole": false,
+                        "supportsReasoningEffort": true,
+                        "maxTokensField": "max_tokens",
+                        "supportsToolChoice": false,
+                        "requiresReasoningContentForToolCalls": true,
+                        "requiresAssistantContentForToolCalls": true
+                    },
+                    "thinkingLevelMap": {
+                        "off": null,
+                        "low": "high",
+                        "medium": "high",
+                        "high": "high",
+                        "xhigh": "max",
+                        "max": "max"
+                    }
+                },
+                {
+                    "id": "deepseek-v4-pro",
+                    "name": "Ark · DeepSeek V4 Pro",
+                    "reasoning": true,
+                    "input": [
+                        "text"
+                    ],
+                    "contextWindow": 1000000,
+                    "maxTokens": 384000,
+                    "compat": {
+                        "supportsDeveloperRole": false,
+                        "supportsReasoningEffort": true,
+                        "maxTokensField": "max_tokens",
+                        "supportsToolChoice": false,
+                        "requiresReasoningContentForToolCalls": true,
+                        "requiresAssistantContentForToolCalls": true
+                    },
+                    "thinkingLevelMap": {
+                        "off": null,
+                        "low": "high",
+                        "medium": "high",
+                        "high": "high",
+                        "xhigh": "max",
+                        "max": "max"
+                    }
+                }
+            ]
+        },
+        "deepseek": {
+            "baseUrl": "https://api.deepseek.com",
+            "api": "openai-completions",
+            "apiKey": "$DEEPSEEK_API_KEY",
+            "compat": {
+                "supportsDeveloperRole": false,
+                "supportsReasoningEffort": true,
+                "requiresReasoningContentOnAssistantMessages": true,
+                "thinkingFormat": "deepseek"
+            },
+            "models": [
+                {
+                    "id": "deepseek-flash",
+                    "name": "DeepSeek Flash (Latest)",
+                    "reasoning": true,
+                    "input": [
+                        "text",
+                        "image"
+                    ],
+                    "contextWindow": 1000000,
+                    "maxTokens": 384000,
+                    "cost": {
+                        "input": 0.3,
+                        "output": 1.2,
+                        "cacheRead": 0.006,
+                        "cacheWrite": 0
+                    },
+                    "thinkingLevelMap": {
+                        "off": null,
+                        "minimal": null,
+                        "low": "low",
+                        "medium": null,
+                        "high": "high",
+                        "xhigh": "max",
+                        "max": "max"
+                    }
+                },
+                {
+                    "id": "deepseek-v4-pro",
+                    "name": "DeepSeek V4 Pro",
+                    "reasoning": true,
+                    "input": [
+                        "text"
+                    ],
+                    "contextWindow": 1000000,
+                    "maxTokens": 384000,
+                    "cost": {
+                        "input": 1.32,
+                        "output": 3.96,
+                        "cacheRead": 0.044,
+                        "cacheWrite": 0
+                    },
+                    "thinkingLevelMap": {
+                        "off": null,
+                        "minimal": null,
+                        "low": "low",
+                        "medium": null,
+                        "high": "high",
+                        "xhigh": "max",
+                        "max": "max"
+                    }
+                }
+            ]
+        }
+    }
+}
